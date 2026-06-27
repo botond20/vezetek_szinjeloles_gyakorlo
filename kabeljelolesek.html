@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Kábeljelölés-gyakorló</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#15171a;
+    --surface:#1e2126;
+    --surface-2:#262a30;
+    --line:#34383f;
+    --ink:#e9e7e1;
+    --muted:#9094a0;
+    --copper:#c8794a;
+    --copper-bright:#e09a6c;
+    --ok:#5aa05a;
+    --bad:#cf5b53;
+    /* position colors */
+    --p1:#c8794a; --p2:#d2a23c; --p3:#3f9e8f; --p4:#5b7bc4; --p5:#9a6fb0; --p6:#5fa157;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --disp:"Space Grotesk",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--disp);
+    line-height:1.5;
+    min-height:100dvh;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .wrap{max-width:680px;margin:0 auto;padding:18px 16px 90px}
+
+  /* ---- Header ---- */
+  header{padding:8px 2px 18px}
+  .kicker{
+    font-family:var(--mono);font-size:11px;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--copper);font-weight:500;
+  }
+  h1{
+    font-size:clamp(26px,7vw,38px);font-weight:700;letter-spacing:-.02em;
+    line-height:1.05;margin-top:6px;
+  }
+  h1 .stripe{
+    display:inline-block;width:46px;height:14px;border-radius:3px;margin-left:4px;
+    background:repeating-linear-gradient(115deg,#d8c63a 0 7px,#4a8a3a 7px 14px);
+    vertical-align:baseline;transform:translateY(1px);
+  }
+  .sub{color:var(--muted);font-size:14px;margin-top:8px;max-width:46ch}
+
+  /* ---- Tabs ---- */
+  nav{
+    display:flex;gap:6px;background:var(--surface);border:1px solid var(--line);
+    border-radius:12px;padding:5px;margin:20px 0 22px;position:sticky;top:8px;z-index:5;
+    backdrop-filter:blur(8px);
+  }
+  nav button{
+    flex:1;font-family:var(--disp);font-weight:600;font-size:14px;color:var(--muted);
+    background:none;border:none;padding:11px 4px;border-radius:8px;cursor:pointer;
+    transition:background .18s,color .18s;min-height:44px;
+  }
+  nav button.active{background:var(--surface-2);color:var(--ink)}
+  nav button:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+
+  .view{display:none}
+  .view.show{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  .card{
+    background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;
+  }
+
+  /* ---- Segment decoder (signature) ---- */
+  .seg-row{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 18px}
+  .seg{
+    font-family:var(--mono);font-weight:700;font-size:clamp(20px,6vw,30px);
+    padding:10px 14px;border-radius:10px;color:#15171a;line-height:1;
+    box-shadow:inset 0 -3px 0 rgba(0,0,0,.22);
+  }
+  .legend{display:flex;flex-direction:column;gap:12px}
+  .leg{display:flex;gap:13px;align-items:flex-start}
+  .leg .dot{width:13px;height:13px;border-radius:3px;margin-top:5px;flex:none}
+  .leg .ltxt b{font-family:var(--mono);font-size:15px}
+  .leg .ltxt .role{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+  .leg .ltxt .mean{font-size:14px;color:var(--ink);margin-top:1px}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+  .chip{
+    font-family:var(--mono);font-size:14px;font-weight:500;
+    background:var(--surface-2);border:1px solid var(--line);color:var(--ink);
+    padding:8px 13px;border-radius:999px;cursor:pointer;min-height:40px;
+    transition:border-color .15s,color .15s;
+  }
+  .chip.active{border-color:var(--copper);color:var(--copper-bright)}
+  .chip:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+
+  .reftable{margin-top:22px}
+  .reftable h3{font-size:13px;text-transform:uppercase;letter-spacing:.14em;color:var(--copper);margin:22px 0 10px;font-weight:600}
+  .ref{border-top:1px solid var(--line);padding:11px 0;display:flex;gap:14px;align-items:baseline}
+  .ref code{font-family:var(--mono);font-weight:700;color:var(--copper-bright);font-size:15px;flex:none;min-width:46px}
+  .ref span{font-size:14px;color:var(--ink)}
+  .ref span em{color:var(--muted);font-style:normal}
+
+  /* ---- Flashcards ---- */
+  .fc-stage{perspective:1200px;margin-bottom:18px}
+  .fc{
+    position:relative;width:100%;min-height:230px;cursor:pointer;
+    transform-style:preserve-3d;transition:transform .5s cubic-bezier(.4,.1,.2,1);
+  }
+  .fc.flip{transform:rotateY(180deg)}
+  .fc-face{
+    position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+    border:1px solid var(--line);border-radius:18px;padding:26px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+  }
+  .fc-front{background:var(--surface);}
+  .fc-back{background:var(--surface-2);transform:rotateY(180deg);}
+  .fc-front .code{font-family:var(--mono);font-weight:700;font-size:clamp(30px,10vw,52px);color:var(--copper-bright);letter-spacing:.01em}
+  .fc-front .hint{margin-top:14px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.16em}
+  .fc-back .mean{font-size:17px;line-height:1.45}
+  .fc-back .extra{margin-top:12px;font-size:13px;color:var(--muted)}
+  .fc-bar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .counter{font-family:var(--mono);font-size:13px;color:var(--muted)}
+  .navbtns{display:flex;gap:8px}
+
+  button.act{
+    font-family:var(--disp);font-weight:600;font-size:15px;color:var(--ink);
+    background:var(--surface-2);border:1px solid var(--line);border-radius:10px;
+    padding:12px 18px;cursor:pointer;min-height:46px;transition:border-color .15s,background .15s;
+  }
+  button.act:hover{border-color:var(--copper)}
+  button.act:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+  button.act.primary{background:var(--copper);border-color:var(--copper);color:#15171a}
+  button.act.primary:hover{background:var(--copper-bright)}
+  button.act:disabled{opacity:.4;cursor:default}
+
+  /* ---- Quiz ---- */
+  .qhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+  .progress{font-family:var(--mono);font-size:13px;color:var(--muted)}
+  .score-pill{font-family:var(--mono);font-size:13px;color:var(--copper-bright);border:1px solid var(--line);padding:5px 11px;border-radius:999px}
+  .qtext{font-size:18px;font-weight:600;line-height:1.4;margin-bottom:18px}
+  .qtext code{font-family:var(--mono);color:var(--copper-bright);font-size:.95em}
+  .opts{display:flex;flex-direction:column;gap:10px}
+  .opt{
+    text-align:left;font-family:var(--disp);font-size:15px;color:var(--ink);
+    background:var(--surface-2);border:1px solid var(--line);border-radius:12px;
+    padding:14px 16px;cursor:pointer;min-height:50px;
+    transition:border-color .15s,background .15s;display:flex;gap:11px;align-items:center;
+  }
+  .opt .mk{font-family:var(--mono);font-size:13px;color:var(--muted);flex:none}
+  .opt:hover:not(:disabled){border-color:var(--copper)}
+  .opt:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+  .opt.correct{border-color:var(--ok);background:rgba(90,160,90,.13)}
+  .opt.correct .mk{color:var(--ok)}
+  .opt.wrong{border-color:var(--bad);background:rgba(207,91,83,.12)}
+  .opt.wrong .mk{color:var(--bad)}
+  .opt:disabled{cursor:default}
+  .explain{
+    margin-top:16px;font-size:14px;line-height:1.5;color:var(--ink);
+    background:var(--surface-2);border-left:3px solid var(--copper);border-radius:0 10px 10px 0;
+    padding:13px 15px;
+  }
+  .explain code{font-family:var(--mono);color:var(--copper-bright)}
+  .qfoot{margin-top:18px;display:flex;justify-content:flex-end}
+
+  /* result */
+  .result{text-align:center;padding:14px 6px}
+  .result .big{font-family:var(--mono);font-size:54px;font-weight:700;color:var(--copper-bright);line-height:1}
+  .result .of{color:var(--muted);font-size:16px;margin-top:4px}
+  .result .msg{margin:16px 0 22px;font-size:16px}
+  .result button{margin:0 auto}
+
+  .hidden{display:none!important}
+
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">Erősáram · Szigetelt vezetékek</div>
+    <h1>Kábeljelölés-gyakorló<span class="stripe" aria-hidden="true"></span></h1>
+    <p class="sub">Harmonizált jelölések, kábeltípusok és régi magyar megfelelők — tanuld meg, majd teszteld a tudásod.</p>
+  </header>
+
+  <nav role="tablist">
+    <button id="t-test" class="active" onclick="setView('test')">Teszt</button>
+    <button id="t-cards" onclick="setView('cards')">Kártyák</button>
+    <button id="t-dec" onclick="setView('dec')">Dekóder</button>
+  </nav>
+
+  <!-- ================= TESZT ================= -->
+  <section id="v-test" class="view show">
+    <div class="card" id="quizCard"></div>
+  </section>
+
+  <!-- ================= KÁRTYÁK ================= -->
+  <section id="v-cards" class="view">
+    <div class="fc-stage">
+      <div class="fc" id="fcard" onclick="flipCard()" role="button" tabindex="0"
+           onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();flipCard()}">
+        <div class="fc-face fc-front">
+          <div class="code" id="fcCode">—</div>
+          <div class="hint">koppints a megfejtésért</div>
+        </div>
+        <div class="fc-face fc-back">
+          <div class="mean" id="fcMean">—</div>
+          <div class="extra" id="fcExtra"></div>
+        </div>
+      </div>
+    </div>
+    <div class="fc-bar">
+      <span class="counter" id="fcCounter">1 / 1</span>
+      <div class="navbtns">
+        <button class="act" onclick="prevCard()">‹ Előző</button>
+        <button class="act primary" onclick="nextCard()">Következő ›</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= DEKÓDER ================= -->
+  <section id="v-dec" class="view">
+    <div class="card">
+      <div class="chips" id="decChips"></div>
+      <div class="seg-row" id="segRow"></div>
+      <div class="legend" id="segLegend"></div>
+
+      <div class="reftable" id="refTables"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+/* =========================================================
+   ADATOK
+   ========================================================= */
+
+// Pozíció-jelentések a harmonizált kódban
+const POSITIONS = {
+  H:{role:"Harmonizáció",mean:"Harmonizált típus (CENELEC szabvány)",color:"--p1"},
+  A:{role:"Harmonizáció",mean:"Elismert nemzeti típus",color:"--p1"},
+  "01":{role:"Névleges feszültség",mean:"100 V",color:"--p2"},
+  "03":{role:"Névleges feszültség",mean:"300 / 300 V",color:"--p2"},
+  "05":{role:"Névleges feszültség",mean:"300 / 500 V",color:"--p2"},
+  "07":{role:"Névleges feszültség",mean:"450 / 750 V",color:"--p2"},
+};
+
+// Dekóderhez: előre megfejtett példakódok
+const DECODE = {
+  "H07V-U":[
+    ["H","Harmonizáció","Harmonizált típus","--p1"],
+    ["07","Feszültség","450 / 750 V","--p2"],
+    ["V","Szigetelés","PVC","--p3"],
+    ["-U","Vezető","Tömör, merev (1 huzal)","--p6"],
+  ],
+  "H07V-K":[
+    ["H","Harmonizáció","Harmonizált típus","--p1"],
+    ["07","Feszültség","450 / 750 V","--p2"],
+    ["V","Szigetelés","PVC","--p3"],
+    ["-K","Vezető","Hajlékony, sodrott (fix szereléshez)","--p6"],
+  ],
+  "H05VV-F":[
+    ["H","Harmonizáció","Harmonizált típus","--p1"],
+    ["05","Feszültség","300 / 500 V","--p2"],
+    ["V","Szigetelés","PVC","--p3"],
+    ["V","Köpeny","PVC","--p4"],
+    ["-F","Vezető","Hajlékony, finom sodrat (mozgó használat)","--p6"],
+  ],
+  "H07RN-F":[
+    ["H","Harmonizáció","Harmonizált típus","--p1"],
+    ["07","Feszültség","450 / 750 V","--p2"],
+    ["R","Szigetelés","Gumi","--p3"],
+    ["N","Köpeny","Polikloroprén (neoprén) gumi","--p4"],
+    ["-F","Vezető","Hajlékony, finom sodrat","--p6"],
+  ],
+  "H05VVH2-F":[
+    ["H","Harmonizáció","Harmonizált típus","--p1"],
+    ["05","Feszültség","300 / 500 V","--p2"],
+    ["V","Szigetelés","PVC","--p3"],
+    ["V","Köpeny","PVC","--p4"],
+    ["H2","Szerkezet","Nem osztható lapos kábel","--p5"],
+    ["-F","Vezető","Hajlékony","--p6"],
+  ],
+};
+
+// Referencia-táblák a dekóder fül alján
+const REF = {
+  "Szigetelés / köpeny anyaga":[
+    ["V","PVC"],["V2","Hőálló PVC"],["R","Természetes / szintetikus gumi"],
+    ["N","Polikloroprén (neoprén) gumi"],["B","Etilén-propilén gumi (EPR)"],
+    ["S","Szilikongumi"],["E","Polietilén (PE)"],["Z","Halogénmentes anyag"],
+  ],
+  "Vezető kialakítása (kötőjel után)":[
+    ["-U","Tömör, merev — egy huzal (1. oszt.)"],
+    ["-R","Sodrott, merev — fix szereléshez (2. oszt.)"],
+    ["-K","Hajlékony — fix szereléshez (5. oszt.)"],
+    ["-F","Hajlékony — mozgó használathoz (5. oszt.)"],
+    ["-H","Extra hajlékony (6. oszt.)"],
+  ],
+  "Ér-jelölés (NYM, NYY stb.)":[
+    ["-J","Védővezetővel (zöld-sárga ér van benne)"],
+    ["-O","Védővezető nélkül"],
+  ],
+  "Érszínek (HD 308)":[
+    ["PE","Zöld-sárga — védővezető"],
+    ["N","Kék — nullavezető"],
+    ["L","Barna — fázis (3 fázisnál: barna, fekete, szürke)"],
+  ],
+};
+
+// Tanulókártyák
+const CARDS = [
+  ["H07V-U","PVC szigetelésű, tömör (merev) rézvezető, 450/750 V.","Fix szerelés védőcsőben. Régi jelölés: MCu."],
+  ["H07V-K","PVC szigetelésű, hajlékony sodrott vezető, 450/750 V.","Elosztószekrény-bekötés, fix szerelés. Régi jelölés: MKH."],
+  ["H05VV-F","PVC szigetelés + PVC köpeny, hajlékony vezeték.","Háztartási készülék-csatlakozó zsinór. Régi jelölés: MT."],
+  ["H03VV-F","Könnyű PVC köpenyes hajlékony vezeték, 300/300 V.","Kis terhelésű készülékek (lámpa, töltő)."],
+  ["H05VVH2-F","Lapos PVC köpenyes hajlékony vezeték.","Lámpazsinór, kis készülékek (a H2 = nem osztható lapos)."],
+  ["H07RN-F","Gumi szigetelés + polikloroprén köpeny, hajlékony.","Nehéz igénybevétel: kültér, építkezés, ipari hosszabbító."],
+  ["H05RR-F","Gumi szigetelés + gumi köpeny, hajlékony.","Könnyebb gumitömlő vezeték."],
+  ["NYM-J","PVC köpenyes installációs kábel védővezetővel.","Falon belüli/kívüli fix szerelés épületben."],
+  ["NYY-J","PVC szigetelésű erősáramú földkábel védővezetővel.","Földbe fektetett táp- és elosztóvezeték."],
+  ["MCu","Régi magyar: műanyag szig. tömör rézvezeték.","Mai megfelelője: H07V-U."],
+  ["MKH","Régi magyar: műanyag szig. könnyű hajlékony vezeték.","Mai megfelelője: H07V-K."],
+  ["MT","Régi magyar: műanyag tömlővezeték.","Mai megfelelője: H05VV-F."],
+  ["-J","Az érösszetétel jelölése: van védővezető.","Zöld-sárga PE-ér a kábelben (pl. NYM-J)."],
+  ["-O","Az érösszetétel jelölése: nincs védővezető.","Csak fázis(ok) + nulla (pl. NYY-O)."],
+  ["Zöld-sárga","Védővezető (PE) színe.","Kizárólag a védővezető lehet zöld-sárga."],
+  ["Kék","Nullavezető (N) színe.","Világoskék a semleges/nulla vezető."],
+];
+
+// Tesztkérdések
+const QUIZ = [
+  {q:"Mit jelöl a <code>H</code> a <code>H05VV-F</code> kód elején?",
+   o:["Harmonizált típus","Hajlékony vezető","Hőálló szigetelés","Háromfázisú kábel"],c:0,
+   e:"Az első betű a megfelelőséget jelzi: <code>H</code> = harmonizált (CENELEC) típus, <code>A</code> = elismert nemzeti típus."},
+
+  {q:"Mit jelent a <code>07</code> a feszültség pozícióban?",
+   o:["450 / 750 V","300 / 500 V","700 V","70 kV"],c:0,
+   e:"<code>03</code> = 300/300 V, <code>05</code> = 300/500 V, <code>07</code> = 450/750 V."},
+
+  {q:"A <code>-F</code> végződés a vezetőről mit árul el?",
+   o:["Hajlékony, mozgó használatra","Tömör, merev huzal","Földkábel","Fémköpeny"],c:0,
+   e:"<code>-F</code> = finom sodratú hajlékony vezető (5. oszt.), mozgó alkalmazásokhoz, pl. készülékzsinór."},
+
+  {q:"Melyik a tömör, merev (egy huzalból álló) vezető jele?",
+   o:["-U","-F","-K","-H"],c:0,
+   e:"<code>-U</code> = tömör merev (1. oszt.), <code>-R</code> = sodrott merev, <code>-K</code>/<code>-F</code> = hajlékony, <code>-H</code> = extra hajlékony."},
+
+  {q:"Mit jelent a <code>V</code> betű a szigetelés/köpeny pozícióban?",
+   o:["PVC","Gumi","Polietilén","Szilikon"],c:0,
+   e:"<code>V</code> = PVC. Gumi = <code>R</code>, polietilén = <code>E</code>, szilikongumi = <code>S</code>."},
+
+  {q:"A <code>H07RN-F</code> köpenyét jelölő <code>N</code> milyen anyag?",
+   o:["Polikloroprén (neoprén) gumi","PVC","Üvegszálfonat","Nylon"],c:0,
+   e:"<code>N</code> = polikloroprén (neoprén) gumiköpeny — ezért ellenálló, kültéri és építkezési használatra való."},
+
+  {q:"Melyik kábel való leginkább építkezési hosszabbítónak, kültérre?",
+   o:["H07RN-F","H03VV-F","H07V-U","H05VVH2-F"],c:0,
+   e:"A <code>H07RN-F</code> gumi+neoprén köpenye mechanikailag és időjárásilag is strapabíró. A többi beltéri/könnyű kivitel."},
+
+  {q:"A régi magyar <code>MCu</code> vezeték mai megfelelője:",
+   o:["H07V-U","H05VV-F","H07RN-F","NYY-J"],c:0,
+   e:"<code>MCu</code> = műanyag (PVC) szigetelésű tömör rézvezeték ≈ <code>H07V-U</code>."},
+
+  {q:"A régi <code>MKH</code> jelölés mai megfelelője:",
+   o:["H07V-K","H07V-U","H05RR-F","NYM-J"],c:0,
+   e:"<code>MKH</code> = műanyag szigetelésű könnyű, hajlékony (sodrott) vezeték ≈ <code>H07V-K</code>."},
+
+  {q:"Mit jelöl a kábeltípus végén a <code>-J</code> (pl. NYM-J)?",
+   o:["Van benne védővezető","Nincs benne védővezető","Egyerű kábel","Réz vezető"],c:0,
+   e:"<code>-J</code> = védővezetővel (zöld-sárga ér van). <code>-O</code> = védővezető nélkül."},
+
+  {q:"Milyen színű lehet kizárólag a védővezető (PE)?",
+   o:["Zöld-sárga","Kék","Barna","Fekete"],c:0,
+   e:"A zöld-sárga szín kizárólag a védővezetőé. A kék a nulla (N), a barna/fekete/szürke a fázisoké."},
+
+  {q:"Milyen színű a nullavezető (N)?",
+   o:["Kék","Zöld-sárga","Barna","Szürke"],c:0,
+   e:"A nulla/semleges vezető (N) világoskék. Zöld-sárga = védő, barna = fázis."},
+
+  {q:"Háromfázisú rendszerben a három fázis (L1, L2, L3) színe:",
+   o:["Barna, fekete, szürke","Piros, sárga, kék","Barna, kék, zöld","Fekete, fehér, piros"],c:0,
+   e:"A mai szabvány szerint a fázisok barna, fekete és szürke; a kék a nulla, a zöld-sárga a védő."},
+
+  {q:"Melyik kábel jellemzően földbe fektetett erősáramú vezeték?",
+   o:["NYY-J","H05VV-F","H07V-K","H03VV-F"],c:0,
+   e:"<code>NYY</code> = PVC szigetelésű erősáramú földkábel. A többi beltéri/készülék-vezeték."},
+
+  {q:"A <code>H2</code> a <code>H05VVH2-F</code> kódban mit jelent?",
+   o:["Nem osztható lapos kábel","Kétszeres szigetelés","Hőálló kivitel","Két ér"],c:0,
+   e:"A szerkezeti pozícióban <code>H</code> = osztható lapos, <code>H2</code> = nem osztható lapos kábel (pl. lámpazsinór)."},
+
+  {q:"Melyik a helyes sorrend a harmonizált kódban?",
+   o:["Harmonizáció · feszültség · szigetelés · köpeny · vezető",
+      "Feszültség · harmonizáció · vezető · szigetelés",
+      "Vezető · köpeny · szigetelés · feszültség",
+      "Szigetelés · feszültség · harmonizáció · köpeny"],c:0,
+   e:"Sorrend: megfelelőség (H/A) → feszültség → szigetelés → köpeny → szerkezet → kötőjel + vezető."},
+
+  {q:"Mit jelez az <code>A</code> betű a kód elején (pl. A05VV-F)?",
+   o:["Elismert nemzeti típus","Alumínium vezető","Hőálló (A-osztály)","Antisztatikus"],c:0,
+   e:"<code>A</code> = elismert nemzeti típus (a harmonizálttól való kis eltérés). Nem az alumíniumra utal!"},
+
+  {q:"A <code>H03VV-F</code> jellemzően mire való?",
+   o:["Kis terhelésű készülékek (lámpa, töltő)","Földkábel","Építkezési hosszabbító","Nagyfeszültségű elosztás"],c:0,
+   e:"A <code>03</code> = 300/300 V kis terhelhetőség, könnyű kivitel — pl. lámpa- és kisfogyasztó-zsinór."},
+
+  {q:"Az alumínium vezetőt a régi magyar jelölésben mi jelölte (a réz Cu helyett)?",
+   o:["Al","A","M","K"],c:0,
+   e:"A vezető anyaga: <code>Cu</code> = réz, <code>Al</code> = alumínium (pl. MCu vs. MAl)."},
+];
+
+/* =========================================================
+   NÉZETVÁLTÁS
+   ========================================================= */
+function setView(v){
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('show'));
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+  document.getElementById('v-'+v).classList.add('show');
+  document.getElementById('t-'+v).classList.add('active');
+}
+
+/* =========================================================
+   DEKÓDER
+   ========================================================= */
+function cssv(name){return getComputedStyle(document.documentElement).getPropertyValue(name).trim();}
+
+function renderDecoder(code){
+  const data=DECODE[code];
+  const row=document.getElementById('segRow');
+  const leg=document.getElementById('segLegend');
+  row.innerHTML=''; leg.innerHTML='';
+  data.forEach(([txt,role,mean,col])=>{
+    const s=document.createElement('div');
+    s.className='seg'; s.textContent=txt;
+    s.style.background=cssv(col);
+    row.appendChild(s);
+
+    const l=document.createElement('div'); l.className='leg';
+    l.innerHTML=`<span class="dot" style="background:${cssv(col)}"></span>
+      <div class="ltxt"><b>${txt}</b> <span class="role">${role}</span>
+      <div class="mean">${mean}</div></div>`;
+    leg.appendChild(l);
+  });
+  document.querySelectorAll('#decChips .chip').forEach(c=>{
+    c.classList.toggle('active', c.dataset.code===code);
+  });
+}
+
+function buildDecoderChips(){
+  const wrap=document.getElementById('decChips');
+  Object.keys(DECODE).forEach(code=>{
+    const b=document.createElement('button');
+    b.className='chip'; b.textContent=code; b.dataset.code=code;
+    b.onclick=()=>renderDecoder(code);
+    wrap.appendChild(b);
+  });
+}
+
+function buildRefTables(){
+  const wrap=document.getElementById('refTables');
+  for(const [title,rows] of Object.entries(REF)){
+    const h=document.createElement('h3'); h.textContent=title; wrap.appendChild(h);
+    rows.forEach(([k,v])=>{
+      const d=document.createElement('div'); d.className='ref';
+      d.innerHTML=`<code>${k}</code><span>${v}</span>`;
+      wrap.appendChild(d);
+    });
+  }
+}
+
+/* =========================================================
+   KÁRTYÁK
+   ========================================================= */
+let cardOrder=[...CARDS.keys()], ci=0, flipped=false;
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function renderCard(){
+  const [code,mean,extra]=CARDS[cardOrder[ci]];
+  document.getElementById('fcCode').textContent=code;
+  document.getElementById('fcMean').textContent=mean;
+  document.getElementById('fcExtra').textContent=extra||'';
+  document.getElementById('fcCounter').textContent=`${ci+1} / ${CARDS.length}`;
+  flipped=false; document.getElementById('fcard').classList.remove('flip');
+}
+function flipCard(){flipped=!flipped;document.getElementById('fcard').classList.toggle('flip',flipped);}
+function nextCard(){ci=(ci+1)%CARDS.length;renderCard();}
+function prevCard(){ci=(ci-1+CARDS.length)%CARDS.length;renderCard();}
+
+/* =========================================================
+   TESZT
+   ========================================================= */
+let qOrder=[], qi=0, score=0, answered=false;
+
+function startQuiz(){
+  qOrder=shuffle([...QUIZ.keys()]); qi=0; score=0; renderQuiz();
+}
+
+function renderQuiz(){
+  const card=document.getElementById('quizCard');
+  if(qi>=qOrder.length){renderResult();return;}
+  answered=false;
+  const item=QUIZ[qOrder[qi]];
+  // opciók keverése a helyes index követésével
+  const idx=item.o.map((_,i)=>i);
+  shuffle(idx);
+  const correctPos=idx.indexOf(item.c);
+  const labels=['A','B','C','D'];
+
+  card.innerHTML=`
+    <div class="qhead">
+      <span class="progress">${qi+1} / ${qOrder.length}. kérdés</span>
+      <span class="score-pill">${score} pont</span>
+    </div>
+    <div class="qtext">${item.q}</div>
+    <div class="opts" id="opts"></div>
+    <div id="exp"></div>
+    <div class="qfoot hidden" id="qfoot">
+      <button class="act primary" onclick="nextQuiz()">${qi+1<qOrder.length?'Következő ›':'Eredmény ›'}</button>
+    </div>`;
+
+  const opts=document.getElementById('opts');
+  idx.forEach((origIdx,pos)=>{
+    const b=document.createElement('button');
+    b.className='opt';
+    b.innerHTML=`<span class="mk">${labels[pos]}</span><span>${item.o[origIdx]}</span>`;
+    b.onclick=()=>answer(pos,correctPos,item.e);
+    opts.appendChild(b);
+  });
+}
+
+function answer(pos,correctPos,explain){
+  if(answered)return; answered=true;
+  const btns=document.querySelectorAll('#opts .opt');
+  btns.forEach((b,i)=>{
+    b.disabled=true;
+    if(i===correctPos)b.classList.add('correct');
+    if(i===pos&&pos!==correctPos)b.classList.add('wrong');
+  });
+  if(pos===correctPos)score++;
+  const exp=document.getElementById('exp');
+  exp.innerHTML=`<div class="explain">${pos===correctPos?'<b>Helyes.</b> ':'<b>Nem talált.</b> '}${explain}</div>`;
+  document.querySelector('.score-pill').textContent=`${score} pont`;
+  document.getElementById('qfoot').classList.remove('hidden');
+}
+
+function nextQuiz(){qi++;renderQuiz();}
+
+function renderResult(){
+  const card=document.getElementById('quizCard');
+  const pct=Math.round(score/qOrder.length*100);
+  let msg;
+  if(pct===100)msg='Hibátlan! Profi szinten ismered a jelöléseket. ⚡';
+  else if(pct>=80)msg='Nagyon erős — pár apró részlet maradt.';
+  else if(pct>=50)msg='Jó alap. Nézd át a Dekódert és a Kártyákat.';
+  else msg='Érdemes átfutni a Dekóder fület, aztán újra.';
+  card.innerHTML=`
+    <div class="result">
+      <div class="big">${score}</div>
+      <div class="of">/ ${qOrder.length} helyes (${pct}%)</div>
+      <div class="msg">${msg}</div>
+      <button class="act primary" onclick="startQuiz()">Új teszt indítása</button>
+    </div>`;
+}
+
+/* =========================================================
+   INDÍTÁS
+   ========================================================= */
+buildDecoderChips();
+buildRefTables();
+renderDecoder('H05VV-F');
+shuffle(cardOrder); renderCard();
+startQuiz();
+</script>
+</body>
+</html>
